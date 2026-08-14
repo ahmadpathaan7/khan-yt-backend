@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+moviepy
+pydub
+wikipedia
+requests
+python-multipart
