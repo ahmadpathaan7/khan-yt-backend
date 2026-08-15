@@ -18,14 +18,13 @@ rendering_jobs = {}
 
 def process_video_job(job_id, script, style, captions, sfx, motion, voiceGender, voiceEmotion, bgmFilename):
     try:
-        # Precision Alignment Engine: Dynamic Caption Timings, Pitch Modulation & BGM Auto-Ducking
         rendering_jobs[job_id] = {"status": "completed", "video_url": "https://example.com/rendered.mp4"}
     except Exception as e:
         rendering_jobs[job_id] = {"status": "failed", "error": str(e)}
 
 @app.get("/")
 def home():
-    return {"message": "Khan Institute Automation Engine (Free & Pro API) is Running!"}
+    return {"message": "Khan Institute Automation Engine is Running!"}
 
 @app.post("/render")
 async def start_render(
@@ -40,13 +39,12 @@ async def start_render(
     voiceEmotion: str = Form("none"),
     bgmFile: Optional[UploadFile] = File(None)
 ):
-    # Pro Feature Verification Logic
+    # Pro Feature Verification Logic (Custom BGM is excluded from Pro check)
     is_pro_used = (
         "capcut" in captionStyle or "tiktok" in captionStyle or
         sfxMode != "none" or
         cameraMotion != "static" or
-        voiceEmotion != "none" or
-        bgmFile is not None
+        voiceEmotion != "none"
     )
 
     if is_pro_used and password != PRO_PASSWORD:
@@ -55,7 +53,6 @@ async def start_render(
     bgm_filename = None
     if bgmFile:
         bgm_filename = f"custom_bgm_{random.randint(100,999)}.mp3"
-        # Save custom uploaded file to server workspace
 
     job_id = str(random.randint(100000, 999999))
     rendering_jobs[job_id] = {"status": "processing"}
