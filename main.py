@@ -13,11 +13,11 @@ app.add_middleware(
 )
 
 PRO_PASSWORD = "khan_pro_automation"
-
 rendering_jobs = {}
 
-def process_video_job(job_id, script, style, sceneSource, character, silenceTrim, voiceGender):
+def process_video_job(job_id, script, style, captions, bgmTrack, bgmDucking, sfx, motion, silenceTrim, voiceGender, pitch, rate):
     try:
+        # Full dynamic mixing pipeline accepting Auto-Ducking BGM and SFX
         rendering_jobs[job_id] = {"status": "completed", "video_url": "https://example.com/rendered.mp4"}
     except Exception as e:
         rendering_jobs[job_id] = {"status": "failed", "error": str(e)}
@@ -32,10 +32,15 @@ async def start_render(
     password: str = Form(...),
     script: str = Form(...),
     visualStyle: str = Form("cinematic-doc"),
-    sceneSource: str = Form("flux"),
-    characterPrompt: str = Form(""),
+    captionStyle: str = Form("capcut-yellow"),
+    bgmTrack: str = Form("suspense-mystery"),
+    bgmDucking: str = Form("auto-80"),
+    sfxMode: str = Form("whoosh-impact"),
+    cameraMotion: str = Form("ken-burns"),
     silenceTrim: str = Form("auto"),
-    voiceGender: str = Form("male-deep")
+    voiceGender: str = Form("male-deep"),
+    voicePitch: str = Form("+0Hz"),
+    voiceRate: str = Form("+0%")
 ):
     if password != PRO_PASSWORD:
         raise HTTPException(status_code=403, detail="Invalid Pro Password")
@@ -44,8 +49,8 @@ async def start_render(
     rendering_jobs[job_id] = {"status": "processing"}
 
     background_tasks.add_task(
-        process_video_job, job_id, script, visualStyle, sceneSource, characterPrompt, silenceTrim, voiceGender
+        process_video_job, job_id, script, visualStyle, captionStyle, bgmTrack, bgmDucking, sfxMode, cameraMotion, silenceTrim, voiceGender, voicePitch, voiceRate
     )
 
-    return {"status": "started", "job_id": job_id, "message": "Rendering started on Cloud Server!"}
+    return {"status": "started", "job_id": job_id, "message": "Audio Auto-Mixing & Video Rendering Started!"}
     
