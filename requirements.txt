@@ -1,13 +1,5 @@
 fastapi
 uvicorn
-requests
-python-multipart
-pydub
-wikipedia
-moviepy
-edge-tts
-fastapi
-uvicorn
 python-multipart
 moviepy
 gTTS
