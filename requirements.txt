@@ -1,7 +1,8 @@
 fastapi
 uvicorn
-moviepy
-pydub
-wikipedia
 requests
 python-multipart
+pydub
+wikipedia
+moviepy
+edge-tts
