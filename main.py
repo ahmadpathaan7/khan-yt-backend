@@ -1,5 +1,4 @@
 import os
-import json
 import random
 import requests
 import subprocess
@@ -8,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
 from gTTS import gTTS
+from pymongo import MongoClient
 
 app = FastAPI()
 
@@ -19,30 +19,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# -------------------------------------------------------------
+# MongoDB Connection Configuration
+# نیچے YOUR_PASSWORD کی جگہ اپنا کلاؤڈ پاس ورڈ درج کریں
+MONGO_URI = "mongodb+srv://ahmad770:Ahmad**110@cluster0.qdsw5r2.mongodb.net/?retryWrites=true&w=majority"
+mongo_client = MongoClient(MONGO_URI)
+db = mongo_client["khan_studio_db"]
+jobs_collection = db["jobs"]
+# -------------------------------------------------------------
+
 MEDIA_DIR = "rendered_output"
-JOBS_FILE = os.path.join(MEDIA_DIR, "jobs.json")
 os.makedirs(MEDIA_DIR, exist_ok=True)
 app.mount("/download", StaticFiles(directory=MEDIA_DIR), name="download")
 
 PRO_PASSWORD = "khan_pro_automation"
 
-def load_jobs():
-    if os.path.exists(JOBS_FILE):
-        try:
-            with open(JOBS_FILE, "r") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
-
 def update_job_status(job_id: str, status_data: dict):
-    jobs = load_jobs()
-    jobs[job_id] = status_data
-    try:
-        with open(JOBS_FILE, "w") as f:
-            json.dump(jobs, f, indent=4)
-    except Exception:
-        pass
+    status_data["job_id"] = job_id
+    jobs_collection.update_one({"job_id": job_id}, {"$set": status_data}, upsert=True)
+
+def get_job_status(job_id: str):
+    return jobs_collection.find_one({"job_id": job_id}, {"_id": 0})
 
 def build_video_task(job_id: str, script: str, video_format: str, voice_setting: str, bgm_path: Optional[str]):
     try:
@@ -127,7 +124,7 @@ async def start_render(
 
 @app.get("/status/{job_id}")
 def check_status(job_id: str):
-    jobs = load_jobs()
-    if job_id not in jobs:
+    job = get_job_status(job_id)
+    if not job:
         raise HTTPException(status_code=404, detail="Job ID Not Found")
-    return jobs[job_id]
+    return job
