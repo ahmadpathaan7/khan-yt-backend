@@ -7,7 +7,7 @@ from fastapi import FastAPI, BackgroundTasks, Form, HTTPException, UploadFile, F
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
-from gtts import gTTS
+from gTTS import gTTS
 
 app = FastAPI()
 
@@ -50,7 +50,6 @@ def build_video_task(job_id: str, script: str, video_format: str, voice_setting:
 
         clean_script = script.split("||")[0].strip() if "||" in script else script
 
-        # 1. Generate TTS Voice
         if voice_setting == 'female-ur':
             tts = gTTS(text=clean_script, lang='ur', tld='co.in', slow=False)
         elif voice_setting == 'male-en':
@@ -63,7 +62,6 @@ def build_video_task(job_id: str, script: str, video_format: str, voice_setting:
         voice_path = os.path.join(MEDIA_DIR, f"{job_id}_voice.mp3")
         tts.save(voice_path)
 
-        # 2. Download Image
         width, height = (1920, 1080) if video_format == "16:9" else (1080, 1920)
         img_path = os.path.join(MEDIA_DIR, f"{job_id}_bg.jpg")
         img_res = requests.get(f"https://picsum.photos/{width}/{height}")
@@ -73,7 +71,6 @@ def build_video_task(job_id: str, script: str, video_format: str, voice_setting:
         output_filename = f"video_{job_id}.mp4"
         output_path = os.path.join(MEDIA_DIR, output_filename)
 
-        # 3. Direct FFmpeg Rendering (Extremely Light on RAM & Never Crashes Render)
         cmd = [
             "ffmpeg", "-y",
             "-loop", "1", "-i", img_path,
@@ -82,10 +79,9 @@ def build_video_task(job_id: str, script: str, video_format: str, voice_setting:
             "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest",
             output_path
         ]
-        
+
         subprocess.run(cmd, check=True)
 
-        # Cleanup temp
         if os.path.exists(img_path): os.remove(img_path)
         if os.path.exists(voice_path): os.remove(voice_path)
 
