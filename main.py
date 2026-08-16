@@ -50,12 +50,17 @@ def build_video_task(job_id: str, script: str, video_format: str, bgm_path: Opti
         update_job_status(job_id, {"status": "processing", "progress": "Generating Voiceover..."})
 
         # 1. Voiceover
-        tts = gTTS(text=script, lang='ur', slow=False)
-        voice_path = os.path.join(MEDIA_DIR, f"{job_id}_voice.mp3")
-        tts.save(voice_path)
+voice_setting = kwargs.get('voiceGender', 'male-ur')
 
-        voice_clip = AudioFileClip(voice_path)
-        video_duration = voice_clip.duration
+if voice_setting == 'female-ur':
+    tts = gTTS(text=script, lang='ur', tld='co.in', slow=False)
+elif voice_setting == 'male-en':
+    tts = gTTS(text=script, lang='en', tld='co.uk', slow=False)
+elif voice_setting == 'female-en':
+    tts = gTTS(text=script, lang='en', tld='com', slow=False)
+else: # male-ur default
+    tts = gTTS(text=script, lang='ur', tld='com.pk', slow=False)
+
 
         # 2. Dimensions
         width, height = (1920, 1080) if video_format == "16:9" else (1080, 1920)
