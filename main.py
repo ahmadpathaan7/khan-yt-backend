@@ -7,7 +7,7 @@ from fastapi import FastAPI, BackgroundTasks, Form, HTTPException, UploadFile, F
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
-from gTTS import gTTS
+from gtts import gTTS
 
 app = FastAPI()
 
