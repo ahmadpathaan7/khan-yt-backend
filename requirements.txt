@@ -1,7 +1,8 @@
 fastapi
 uvicorn
 python-multipart
-moviepy
 gTTS
 requests
 pillow
+pymongo
+dnspython
