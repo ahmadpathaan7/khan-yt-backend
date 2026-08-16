@@ -5,7 +5,7 @@ from fastapi import FastAPI, BackgroundTasks, Form, HTTPException, UploadFile, F
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
-from gtts import gTTS
+from gTTS import gTTS
 from moviepy.editor import ImageClip, AudioFileClip, CompositeAudioClip, TextClip, CompositeVideoClip
 
 app = FastAPI()
@@ -27,10 +27,21 @@ app.mount("/download", StaticFiles(directory=MEDIA_DIR), name="download")
 PRO_PASSWORD = "khan_pro_automation"
 rendering_jobs = {}
 
-def build_video_task(job_id: str, script: str, caption_style: str, bgm_path: Optional[str]):
+def build_video_task(
+    job_id: str, 
+    script: str, 
+    video_format: str, 
+    image_engine: str, 
+    voice_gender: str, 
+    voice_emotion: str, 
+    caption_style: str, 
+    bgm_path: Optional[str]
+):
     try:
-        # 1. Voiceover Generation using gTTS (Urdu/English support)
-        tts = gTTS(text=script, lang='ur', slow=False)
+        # 1. Voiceover Generation using gTTS
+        # (gTTS defaults to Urdu; tld can alter voice accent/style slightly)
+        tld_accent = 'com.pk' if voice_gender == 'male-standard' else 'co.in'
+        tts = gTTS(text=script, lang='ur', tld=tld_accent, slow=False)
         voice_path = os.path.join(MEDIA_DIR, f"{job_id}_voice.mp3")
         tts.save(voice_path)
 
@@ -38,10 +49,17 @@ def build_video_task(job_id: str, script: str, caption_style: str, bgm_path: Opt
         voice_clip = AudioFileClip(voice_path)
         video_duration = voice_clip.duration
 
-        # 2. Visual Layer (Placeholder Background Image)
-        img_clip = ImageClip("https://picsum.photos/1080/1920").set_duration(video_duration)
+        # 2. Aspect Ratio / Resolution Setup
+        if video_format == "16:9":
+            width, height = 1920, 1080  # Long Video
+        else:
+            width, height = 1080, 1920  # Short / Reel (9:16)
 
-        # 3. Audio Mixing
+        # 3. Visual Layer Setup (Placeholder / Image Engine Logic)
+        img_url = f"https://picsum.photos/{width}/{height}"
+        img_clip = ImageClip(img_url).set_duration(video_duration)
+
+        # 4. Audio Mixing
         audio_clips = [voice_clip]
         if bgm_path and os.path.exists(bgm_path):
             bgm_clip = AudioFileClip(bgm_path).volumex(0.15).set_duration(video_duration)
@@ -49,10 +67,10 @@ def build_video_task(job_id: str, script: str, caption_style: str, bgm_path: Opt
 
         final_audio = CompositeAudioClip(audio_clips)
 
-        # 4. Video Assembly
+        # 5. Video Assembly
         video_clip = img_clip.set_audio(final_audio)
 
-        # 5. Export Final MP4 File
+        # 6. Export Final MP4 File
         output_filename = f"video_{job_id}.mp4"
         output_path = os.path.join(MEDIA_DIR, output_filename)
         
@@ -86,12 +104,14 @@ async def start_render(
     background_tasks: BackgroundTasks,
     password: Optional[str] = Form(""),
     script: str = Form(...),
+    videoFormat: str = Form("9:16"),
     visualStyle: str = Form("cinematic-doc"),
+    imageEngine: str = Form("standard-web"),
+    voiceGender: str = Form("male-standard"),
+    voiceEmotion: str = Form("none"),
     captionStyle: str = Form("clean-sub"),
     sfxMode: str = Form("none"),
     cameraMotion: str = Form("static"),
-    voiceGender: str = Form("male-standard"),
-    voiceEmotion: str = Form("none"),
     bgmFile: Optional[UploadFile] = File(None)
 ):
     # Pro Feature Verification Check
@@ -99,7 +119,8 @@ async def start_render(
         "capcut" in captionStyle or "tiktok" in captionStyle or
         sfxMode != "none" or
         cameraMotion != "static" or
-        voiceEmotion != "none"
+        voiceEmotion != "none" or
+        imageEngine in ["flux-ai", "hybrid-flux"]
     )
 
     if is_pro_used and password != PRO_PASSWORD:
@@ -115,7 +136,15 @@ async def start_render(
     rendering_jobs[job_id] = {"status": "processing"}
 
     background_tasks.add_task(
-        build_video_task, job_id, script, captionStyle, bgm_path
+        build_video_task, 
+        job_id, 
+        script, 
+        videoFormat, 
+        imageEngine, 
+        voiceGender, 
+        voiceEmotion, 
+        captionStyle, 
+        bgm_path
     )
 
     return {"status": "started", "job_id": job_id, "message": "Rendering Task Initiated!"}
